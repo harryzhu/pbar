@@ -14,7 +14,7 @@ type Bar64 struct {
 }
 
 var wg64 sync.WaitGroup
-var bar64 Bar64
+var bar64 *Bar64
 
 func NewBar64(n int64) *Bar64 {
 	wg64 = sync.WaitGroup{}
