@@ -51,6 +51,7 @@ func (b *Bar64) Add64(n int64) error {
 	if b.Current64 >= b.Max64 {
 		b.Render64("Done")
 		fmt.Println("")
+
 		wg64.Done()
 	}
 
