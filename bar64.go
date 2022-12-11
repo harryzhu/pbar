@@ -20,7 +20,7 @@ func NewBar64(n int64) *Bar64 {
 	wg64 = sync.WaitGroup{}
 	wg64.Add(1)
 
-	bar64 = &Bar{
+	bar64 = &Bar64{
 		Counter:   0,
 		Max64:     n,
 		Current64: 0,
