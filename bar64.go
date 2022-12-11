@@ -2,6 +2,7 @@ package pbar
 
 import (
 	"fmt"
+
 	//"io"
 	"sync"
 )
@@ -25,6 +26,7 @@ func NewBar64(n int64) *Bar64 {
 		Max64:     n,
 		Current64: 0,
 	}
+
 	return bar64
 }
 
@@ -41,16 +43,26 @@ func (b *Bar64) Add64(n int64) error {
 		return nil
 	}
 
-	if b.Counter%10000 == 0 {
-		fmt.Printf("\r[Processing: %v / %v bytes | %v | %v ]", b.Current64, b.Max64, b.Counter, n)
+	if b.Counter%5000 == 0 {
+		b.Render64("Processing")
 		return nil
 	}
 
 	if b.Current64 >= b.Max64 {
-		fmt.Printf("\r[Done: %v / %v bytes | %v | %v ]", b.Current64, b.Max64, b.Counter, n)
+		b.Render64("Done")
 		fmt.Println("")
+		wg64.Done()
 	}
 
+	return nil
+}
+
+func (b *Bar64) Render64(s string) error {
+	if b.Max64 > 0 {
+		fmt.Printf("\r[ %12s: %v / %v bytes ]", s, b.Current64, b.Max64)
+	} else {
+		fmt.Printf("\r[ %12s: %v bytes ]", s, b.Current64)
+	}
 	return nil
 }
 
@@ -67,5 +79,5 @@ func (b *Bar64) Read(bt []byte) (n int, err error) {
 }
 
 func (b *Bar64) Finish() {
-	wg64.Done()
+
 }
