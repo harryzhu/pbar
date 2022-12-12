@@ -2,32 +2,29 @@ package pbar
 
 import (
 	"fmt"
+	"time"
 
-	//"io"
-	"sync"
+	"sync/atomic"
 )
 
 type Bar64 struct {
-	Counter    int
-	CounterMax int
-	Max64      int64
-	Current64  int64
+	Counter     int
+	Max64       int64
+	Current64   int64
+	TimeStart64 int64
+	TimeStop64  int64
+	Speed64     int64
 }
 
-var wg64 sync.WaitGroup
-var bar64 *Bar64
-
 func NewBar64(n int64) *Bar64 {
-	wg64 = sync.WaitGroup{}
-	wg64.Add(1)
-
-	bar64 = &Bar64{
-		Counter:   0,
-		Max64:     n,
-		Current64: 0,
+	return &Bar64{
+		Counter:     0,
+		Max64:       n,
+		Current64:   0,
+		TimeStart64: 0,
+		TimeStop64:  0,
+		Speed64:     0,
 	}
-
-	return bar64
 }
 
 func (b *Bar64) WithMax64(n int64) *Bar64 {
@@ -36,7 +33,7 @@ func (b *Bar64) WithMax64(n int64) *Bar64 {
 }
 
 func (b *Bar64) Add64(n int64) error {
-	b.Current64 = b.Current64 + n
+	b.Current64 = atomic.AddInt64(&b.Current64, n)
 	b.Counter = b.Counter + 1
 
 	if b.Counter < 10000 {
@@ -44,41 +41,49 @@ func (b *Bar64) Add64(n int64) error {
 	}
 
 	if b.Counter%5000 == 0 {
+		b.TimeStop64 = time.Now().Unix()
 		b.Render64("Processing")
 		return nil
-	}
-
-	if b.Current64 >= b.Max64 {
-		b.Render64("Done")
-		fmt.Println("")
-
-		wg64.Done()
 	}
 
 	return nil
 }
 
 func (b *Bar64) Render64(s string) error {
+	dSecond := b.TimeStop64 - b.TimeStart64
+	if dSecond <= 0 {
+		dSecond = 1
+	}
+	b.Speed64 = b.Current64 / dSecond / int64(1<<20)
 	if b.Max64 > 0 {
-		fmt.Printf("\r[ %12s: %v / %v bytes ]", s, b.Current64, b.Max64)
+		fmt.Printf("\r%12s:[ %v / %v bytes | speed: %v MB/s]", s, b.Current64, b.Max64, b.Speed64)
 	} else {
-		fmt.Printf("\r[ %12s: %v bytes ]", s, b.Current64)
+		fmt.Printf("\r%12s:[ %v MB | speed: %v MB/s]", s, b.Current64/int64(1<<20), b.Speed64)
 	}
 	return nil
 }
 
 func (b *Bar64) Write(bt []byte) (n int, err error) {
+	if b.Counter == 0 {
+		b.TimeStart64 = time.Now().Unix()
+	}
 	n = len(bt)
 	b.Add64(int64(n))
-	return
+	return n, nil
 }
 
 func (b *Bar64) Read(bt []byte) (n int, err error) {
+	if b.Counter == 0 {
+		b.TimeStart64 = time.Now().Unix()
+	}
 	n = len(bt)
 	b.Add64(int64(n))
-	return
+	return n, nil
 }
 
-func (b *Bar64) Finish() {
+func (b *Bar64) Finish() error {
+	b.Render64("Done")
 
+	fmt.Println("")
+	return nil
 }
