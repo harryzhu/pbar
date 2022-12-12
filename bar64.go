@@ -8,22 +8,26 @@ import (
 )
 
 type Bar64 struct {
-	Counter     int
-	Max64       int64
-	Current64   int64
-	TimeStart64 int64
-	TimeStop64  int64
-	Speed64     int64
+	Counter      int
+	CounterSkip  int
+	CounterCycle int
+	Max64        int64
+	Current64    int64
+	TimeStart64  int64
+	TimeStop64   int64
+	Speed64      int64
 }
 
 func NewBar64(n int64) *Bar64 {
 	return &Bar64{
-		Counter:     0,
-		Max64:       n,
-		Current64:   0,
-		TimeStart64: 0,
-		TimeStop64:  0,
-		Speed64:     0,
+		Counter:      0,
+		CounterSkip:  10000,
+		CounterCycle: 5000,
+		Max64:        n,
+		Current64:    0,
+		TimeStart64:  0,
+		TimeStop64:   0,
+		Speed64:      0,
 	}
 }
 
@@ -32,15 +36,25 @@ func (b *Bar64) WithMax64(n int64) *Bar64 {
 	return b
 }
 
+func (b *Bar64) WithCounterSkip(n int) *Bar64 {
+	b.CounterSkip = n
+	return b
+}
+
+func (b *Bar64) WithCounterCycle(n int) *Bar64 {
+	b.CounterCycle = n
+	return b
+}
+
 func (b *Bar64) Add64(n int64) error {
 	b.Current64 = atomic.AddInt64(&b.Current64, n)
 	b.Counter = b.Counter + 1
 
-	if b.Counter < 10000 {
+	if b.Counter < b.CounterSkip {
 		return nil
 	}
 
-	if b.Counter%5000 == 0 {
+	if b.Counter%b.CounterCycle == 0 {
 		b.TimeStop64 = time.Now().Unix()
 		b.Render64("Processing")
 		return nil
@@ -82,8 +96,11 @@ func (b *Bar64) Read(bt []byte) (n int, err error) {
 }
 
 func (b *Bar64) Finish() error {
-	b.Render64("Done")
+	if b.Counter < b.CounterSkip {
+		return nil
+	}
 
+	b.Render64("Done")
 	fmt.Println("")
 	return nil
 }
